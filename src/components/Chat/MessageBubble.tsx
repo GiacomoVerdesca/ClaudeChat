@@ -9,19 +9,40 @@ import './Chat.css'
 interface Props {
   message: Message
   isStreaming?: boolean
+  userInitials?: string
 }
 
-export function MessageBubble({ message, isStreaming }: Props) {
+export function MessageBubble({ message, isStreaming, userInitials }: Props) {
   const isUser = message.role === 'user'
+  const showThinking = !isUser && isStreaming && !message.content
 
   return (
     <div className={`message-row ${isUser ? 'user' : 'assistant'}`}>
       <div className={`message-avatar ${isUser ? 'user-avatar' : 'assistant-avatar'}`}>
-        {isUser ? 'U' : 'C'}
+        {isUser ? (userInitials || 'U') : 'C'}
       </div>
-      <div className={`message-content ${isStreaming ? 'streaming-cursor' : ''}`}>
+      <div className={`message-content ${isStreaming && !showThinking ? 'streaming-cursor' : ''}`}>
         {isUser ? (
-          <span className="user-text">{message.content}</span>
+          <>
+            {message.images && message.images.length > 0 && (
+              <div className="message-images">
+                {message.images.map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={`data:${img.mediaType};base64,${img.data}`}
+                    alt=""
+                    className="message-image"
+                  />
+                ))}
+              </div>
+            )}
+            {message.content && <span className="user-text">{message.content}</span>}
+          </>
+        ) : showThinking ? (
+          <div className="thinking-indicator">
+            <span>Claude sta pensando</span>
+            <span className="thinking-dots"><span/><span/><span/></span>
+          </div>
         ) : (
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -40,7 +61,7 @@ export function MessageBubble({ message, isStreaming }: Props) {
               },
             }}
           >
-            {message.content || (isStreaming ? ' ' : '')}
+            {message.content || ''}
           </ReactMarkdown>
         )}
       </div>

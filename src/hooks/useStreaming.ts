@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import type { Conversation, Message } from '../types'
+import type { Conversation, Message, MessageImage } from '../types'
 
 type StreamState = 'idle' | 'streaming' | 'error'
 
@@ -18,7 +18,7 @@ export function useStreaming({ activeConv, setActiveConv, saveConversation, gene
   const activeConvRef = useRef<Conversation | null>(null)
   activeConvRef.current = activeConv
 
-  const sendMessage = useCallback(async (userContent: string) => {
+  const sendMessage = useCallback(async (userContent: string, images: MessageImage[] = []) => {
     if (!activeConv) return
     setError(null)
 
@@ -27,6 +27,7 @@ export function useStreaming({ activeConv, setActiveConv, saveConversation, gene
       role: 'user',
       content: userContent,
       timestamp: Date.now(),
+      ...(images.length > 0 ? { images } : {}),
     }
     const assistantMsg: Message = {
       id: uuidv4(),
@@ -98,7 +99,7 @@ export function useStreaming({ activeConv, setActiveConv, saveConversation, gene
     await window.claudeAPI.sendMessage({
       messages: convWithUser.messages
         .filter(m => !(m.role === 'assistant' && m.content === ''))  // escludi solo il placeholder vuoto
-        .map(m => ({ role: m.role, content: m.content })),
+        .map(m => ({ role: m.role, content: m.content, images: m.images })),
       model: activeConv.model,
       cliSessionId: activeConv.cliSessionId,
       mode: activeConv.mode,

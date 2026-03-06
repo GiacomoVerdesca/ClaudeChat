@@ -1,8 +1,14 @@
+export interface MessageImage {
+  data: string       // base64
+  mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+}
+
 export interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: number
+  images?: MessageImage[]
 }
 
 export type ClaudeMode = 'chat' | 'plan' | 'edit' | 'auto'
@@ -31,6 +37,9 @@ export interface ConversationMeta {
   title: string
   updatedAt: number
   model: string
+  source?: 'local' | 'vscode'
+  vscodeSessionId?: string
+  projectDir?: string
 }
 
 export type AuthMode = 'apikey' | 'cli'
@@ -69,14 +78,16 @@ export interface ClaudeAPI {
   clearApiKey: () => Promise<boolean>
   getAccountInfo: () => Promise<AccountInfo>
   pickDirectory: () => Promise<string | null>
+  pickImages: () => Promise<MessageImage[] | null>
   listVSCodeSessions: () => Promise<VSCodeSessionMeta[]>
   loadVSCodeSession: (sessionId: string) => Promise<{ role: 'user' | 'assistant'; content: string; timestamp: number }[]>
   listConversations: () => Promise<ConversationMeta[]>
+  listAllConversations: () => Promise<ConversationMeta[]>
   loadConversation: (id: string) => Promise<Conversation | null>
   saveConversation: (conv: Conversation) => Promise<boolean>
   deleteConversation: (id: string) => Promise<boolean>
   sendMessage: (payload: {
-    messages: { role: string; content: string }[]
+    messages: { role: string; content: string; images?: MessageImage[] }[]
     model: string
     cliSessionId?: string
     mode?: ClaudeMode

@@ -13,9 +13,11 @@ contextBridge.exposeInMainWorld('claudeAPI', {
 
   // Dialog
   pickDirectory: () => ipcRenderer.invoke('dialog:pickDirectory'),
+  pickImages: () => ipcRenderer.invoke('dialog:pickImages'),
 
   // Conversations
   listConversations: () => ipcRenderer.invoke('conv:list'),
+  listAllConversations: () => ipcRenderer.invoke('conv:listAll'),
   loadConversation: (id: string) => ipcRenderer.invoke('conv:load', id),
   saveConversation: (conv: unknown) => ipcRenderer.invoke('conv:save', conv),
   deleteConversation: (id: string) => ipcRenderer.invoke('conv:delete', id),

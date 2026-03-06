@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import type { Conversation, ClaudeMode } from '../../types'
+import type { Conversation, ClaudeMode, MessageImage } from '../../types'
 import { MessageBubble } from './MessageBubble'
 import { InputBar } from './InputBar'
 import { MODELS, MODES } from '../../types'
@@ -9,11 +9,12 @@ interface Props {
   conversation: Conversation | null
   streamState: 'idle' | 'streaming' | 'error'
   error: string | null
-  onSend: (content: string) => void
+  onSend: (content: string, images: MessageImage[]) => void
   onStop: () => void
   onModelChange: (model: string) => void
   onModeChange: (mode: ClaudeMode) => void
   onProjectDirChange: () => void
+  userInitials?: string
 }
 
 function shortPath(p: string) {
@@ -21,7 +22,7 @@ function shortPath(p: string) {
   return parts.length > 2 ? '…/' + parts.slice(-2).join('/') : p
 }
 
-export function ChatWindow({ conversation, streamState, error, onSend, onStop, onModelChange, onModeChange, onProjectDirChange }: Props) {
+export function ChatWindow({ conversation, streamState, error, onSend, onStop, onModelChange, onModeChange, onProjectDirChange, userInitials }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
 
@@ -132,6 +133,7 @@ export function ChatWindow({ conversation, streamState, error, onSend, onStop, o
               key={msg.id}
               message={msg}
               isStreaming={showCursor}
+              userInitials={userInitials}
             />
           )
         })}

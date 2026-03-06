@@ -8,7 +8,7 @@ export function useConversations() {
   const [loading, setLoading] = useState(false)
 
   const refreshList = useCallback(async () => {
-    const list = await window.claudeAPI.listConversations()
+    const list = await window.claudeAPI.listAllConversations()
     setMetas(list)
   }, [])
 
@@ -16,12 +16,41 @@ export function useConversations() {
     refreshList()
   }, [refreshList])
 
-  const selectConversation = useCallback(async (id: string) => {
+  const selectConversation = useCallback(async (id: string, meta?: ConversationMeta) => {
     setLoading(true)
+
+    // Sessione VS Code non ancora importata: carica dal JSONL e salva come conversazione locale
+    if (meta?.source === 'vscode' && meta.vscodeSessionId) {
+      const rawMessages = await window.claudeAPI.loadVSCodeSession(meta.vscodeSessionId)
+      if (rawMessages.length > 0) {
+        const messages = rawMessages.map(m => ({
+          id: uuidv4(),
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+        }))
+        const conv: Conversation = {
+          id: uuidv4(),
+          title: meta.title,
+          createdAt: messages[0]?.timestamp ?? Date.now(),
+          updatedAt: messages[messages.length - 1]?.timestamp ?? Date.now(),
+          model: meta.model ?? 'claude-sonnet-4-6',
+          messages,
+          cliSessionId: meta.vscodeSessionId,
+          projectDir: meta.projectDir,
+        }
+        await window.claudeAPI.saveConversation(conv)
+        setActiveConv(conv)
+        await refreshList()
+      }
+      setLoading(false)
+      return
+    }
+
     const conv = await window.claudeAPI.loadConversation(id)
     setActiveConv(conv)
     setLoading(false)
-  }, [])
+  }, [refreshList])
 
   const newConversation = useCallback((model: Model = 'claude-sonnet-4-6') => {
     const conv: Conversation = {

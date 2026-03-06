@@ -6,15 +6,14 @@ import './Sidebar.css'
 interface Props {
   metas: ConversationMeta[]
   activeId: string | null
-  onSelect: (id: string) => void
+  onSelect: (id: string, meta: ConversationMeta) => void
   onNew: (model: Model) => void
   onDelete: (id: string) => void
   onRename: (id: string, title: string) => void
   onSettings: () => void
-  onImportVSCode: () => void
 }
 
-export function Sidebar({ metas, activeId, onSelect, onNew, onDelete, onRename, onSettings, onImportVSCode }: Props) {
+export function Sidebar({ metas, activeId, onSelect, onNew, onDelete, onRename, onSettings }: Props) {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [selectedModel, setSelectedModel] = useState<Model>('claude-sonnet-4-6')
@@ -58,7 +57,7 @@ export function Sidebar({ metas, activeId, onSelect, onNew, onDelete, onRename, 
 
   // Iniziali per l'avatar
   const initials = accountInfo?.username
-    ? accountInfo.username.split('.').map(p => p[0]?.toUpperCase() ?? '').join('').slice(0, 2)
+    ? accountInfo.username.split(/[\s._]/).map(p => p[0]?.toUpperCase() ?? '').join('').slice(0, 2)
     : '?'
 
   // Etichetta secondaria
@@ -94,8 +93,8 @@ export function Sidebar({ metas, activeId, onSelect, onNew, onDelete, onRename, 
         {metas.map(meta => (
           <div
             key={meta.id}
-            className={`conv-item ${meta.id === activeId ? 'active' : ''}`}
-            onClick={() => onSelect(meta.id)}
+            className={`conv-item ${meta.id === activeId ? 'active' : ''} ${meta.source === 'vscode' ? 'vscode-session' : ''}`}
+            onClick={() => onSelect(meta.id, meta)}
             onMouseEnter={() => setHoveredId(meta.id)}
             onMouseLeave={() => setHoveredId(null)}
           >
@@ -111,10 +110,13 @@ export function Sidebar({ metas, activeId, onSelect, onNew, onDelete, onRename, 
               />
             ) : (
               <>
-                <span className="conv-title" onDoubleClick={e => startRename(meta, e)}>
+                <span className="conv-title" onDoubleClick={e => meta.source !== 'vscode' ? startRename(meta, e) : undefined}>
                   {meta.title}
                 </span>
-                {(hoveredId === meta.id || meta.id === activeId) && (
+                {meta.source === 'vscode' && (
+                  <span className="vscode-badge" title={meta.projectDir ?? 'Sessione VS Code'}>VS</span>
+                )}
+                {meta.source !== 'vscode' && (hoveredId === meta.id || meta.id === activeId) && (
                   <div className="conv-actions">
                     <button
                       className="conv-action-btn"
@@ -147,13 +149,6 @@ export function Sidebar({ metas, activeId, onSelect, onNew, onDelete, onRename, 
       </div>
 
       <div className="sidebar-footer">
-        <button className="vscode-btn" onClick={onImportVSCode}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="16 18 22 12 16 6"/>
-            <polyline points="8 6 2 12 8 18"/>
-          </svg>
-          Sessioni VS Code
-        </button>
         <button className="settings-btn" onClick={onSettings}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="3"/>

@@ -3,11 +3,9 @@ import { Sidebar } from './components/Sidebar/Sidebar'
 import { ChatWindow } from './components/Chat/ChatWindow'
 import { Setup } from './components/Setup/Setup'
 import { SettingsModal } from './components/Settings/SettingsModal'
-import { VSCodeImportModal } from './components/Import/VSCodeImportModal'
 import { useConversations } from './hooks/useConversations'
 import { useStreaming } from './hooks/useStreaming'
-import type { Conversation, Model, ClaudeMode } from './types'
-import { v4 as uuidv4 } from 'uuid'
+import type { Conversation, Model, ClaudeMode, AccountInfo } from './types'
 import './styles/globals.css'
 import './App.css'
 
@@ -16,7 +14,7 @@ type AppState = 'loading' | 'setup' | 'ready'
 export default function App() {
   const [appState, setAppState] = useState<AppState>('loading')
   const [showSettings, setShowSettings] = useState(false)
-  const [showVSCodeImport, setShowVSCodeImport] = useState(false)
+  const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null)
 
   const {
     metas,
@@ -67,7 +65,7 @@ export default function App() {
     generateTitle,
   })
 
-  // Controlla autenticazione all'avvio
+  // Controlla autenticazione all'avvio e carica info account
   useEffect(() => {
     Promise.all([
       window.claudeAPI.getAuthMode(),
@@ -79,7 +77,12 @@ export default function App() {
         setAppState('setup')
       }
     })
+    window.claudeAPI.getAccountInfo().then(setAccountInfo).catch(() => {})
   }, [])
+
+  const userInitials = accountInfo?.username
+    ? accountInfo.username.split(/[\s._]/).map(p => p[0]?.toUpperCase() ?? '').join('').slice(0, 2)
+    : 'U'
 
   // Ctrl+N per nuova conversazione
   useEffect(() => {
@@ -113,33 +116,6 @@ export default function App() {
     if (dir && activeConv) setActiveConv({ ...activeConv, projectDir: dir })
   }
 
-  // Importa una sessione VS Code: carica i messaggi e la apre come conversazione
-  const handleImportVSCode = async (sessionId: string, firstMessage: string) => {
-    setShowVSCodeImport(false)
-    const rawMessages = await window.claudeAPI.loadVSCodeSession(sessionId)
-    if (rawMessages.length === 0) return
-
-    const messages = rawMessages.map(m => ({
-      id: uuidv4(),
-      role: m.role,
-      content: m.content,
-      timestamp: m.timestamp,
-    }))
-
-    const conv: Conversation = {
-      id: uuidv4(),
-      title: firstMessage.slice(0, 60),
-      createdAt: messages[0]?.timestamp ?? Date.now(),
-      updatedAt: messages[messages.length - 1]?.timestamp ?? Date.now(),
-      model: 'claude-sonnet-4-6',
-      messages,
-      cliSessionId: sessionId,  // permette di continuare con --resume
-    }
-
-    await saveConversation(conv)
-    setActiveConv(conv)
-  }
-
   if (appState === 'loading') {
     return (
       <div className="app-loading">
@@ -157,12 +133,11 @@ export default function App() {
       <Sidebar
         metas={metas}
         activeId={activeConv?.id ?? null}
-        onSelect={selectConversation}
+        onSelect={(id, meta) => selectConversation(id, meta)}
         onNew={handleNew}
         onDelete={deleteConversation}
         onRename={renameConversation}
         onSettings={() => setShowSettings(true)}
-        onImportVSCode={() => setShowVSCodeImport(true)}
       />
       <ChatWindow
         conversation={activeConv}
@@ -173,17 +148,12 @@ export default function App() {
         onModelChange={handleModelChange}
         onModeChange={handleModeChange}
         onProjectDirChange={handleProjectDirChange}
+        userInitials={userInitials}
       />
       {showSettings && (
         <SettingsModal
           onClose={() => setShowSettings(false)}
           onLogout={() => { setShowSettings(false); setAppState('setup') }}
-        />
-      )}
-      {showVSCodeImport && (
-        <VSCodeImportModal
-          onImport={handleImportVSCode}
-          onClose={() => setShowVSCodeImport(false)}
         />
       )}
     </div>

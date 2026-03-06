@@ -194,13 +194,72 @@ function storeApiKey(key: string) {
   }
 }
 
+function getCliOAuthToken(): string | null {
+  const credFile = path.join(CLAUDE_DIR, '.credentials.json')
+  try {
+    if (fs.existsSync(credFile)) {
+      const cred = JSON.parse(fs.readFileSync(credFile, 'utf-8'))
+      return cred?.claudeAiOauth?.accessToken ?? null
+    }
+  } catch { /* */ }
+  return null
+}
+
+async function sendViaAPI(
+  event: Electron.IpcMainInvokeEvent,
+  client: Anthropic,
+  payload: { messages: { role: 'user' | 'assistant'; content: string; images?: MessageImage[] }[]; model: string }
+) {
+  const apiMessages = payload.messages.map(m => {
+    if (m.images?.length) {
+      return {
+        role: m.role,
+        content: [
+          ...m.images.map(img => ({
+            type: 'image' as const,
+            source: { type: 'base64' as const, media_type: img.mediaType, data: img.data },
+          })),
+          { type: 'text' as const, text: m.content },
+        ],
+      }
+    }
+    return { role: m.role, content: m.content }
+  })
+
+  try {
+    const stream = await client.messages.stream({
+      model: payload.model || 'claude-sonnet-4-6',
+      max_tokens: 8096,
+      messages: apiMessages as Parameters<typeof client.messages.stream>[0]['messages'],
+    })
+    for await (const chunk of stream) {
+      if (abortController?.signal.aborted) break
+      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+        event.sender.send('stream:chunk', chunk.delta.text)
+      }
+    }
+    if (!abortController?.signal.aborted) event.sender.send('stream:end')
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (!msg.includes('aborted')) event.sender.send('stream:error', msg)
+  } finally {
+    abortController = null
+  }
+}
+
 // ── CONVERSATIONS ─────────────────────────────────────────────────────────────
+
+interface MessageImage {
+  data: string
+  mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+}
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: number
+  images?: MessageImage[]
 }
 
 interface Conversation {
@@ -218,6 +277,9 @@ interface ConversationMeta {
   title: string
   updatedAt: number
   model: string
+  source?: 'local' | 'vscode'
+  vscodeSessionId?: string
+  projectDir?: string
 }
 
 function convPath(id: string) {
@@ -426,7 +488,8 @@ export function registerIpcHandlers(win: BrowserWindow) {
 
   ipcMain.handle('auth:getAccountInfo', () => {
     const mode = getAuthMode()
-    const username = process.env.USERNAME || process.env.USER || 'Utente'
+    const raw = process.env.USERNAME || process.env.USER || 'Utente'
+    const username = raw.split(/[._\s]/).map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
 
     if (mode === 'cli') {
       // Legge ~/.claude/.credentials.json per subscriptionType
@@ -457,10 +520,48 @@ export function registerIpcHandlers(win: BrowserWindow) {
     for (const file of files) {
       try {
         const conv: Conversation = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf-8'))
-        metas.push({ id: conv.id, title: conv.title, updatedAt: conv.updatedAt, model: conv.model })
+        metas.push({ id: conv.id, title: conv.title, updatedAt: conv.updatedAt, model: conv.model, source: 'local' })
       } catch { /* ignora file corrotti */ }
     }
     return metas.sort((a, b) => b.updatedAt - a.updatedAt)
+  })
+
+  ipcMain.handle('conv:listAll', (): ConversationMeta[] => {
+    ensureDataDir()
+    const files = fs.readdirSync(DATA_DIR).filter(f => f.endsWith('.json'))
+    const localMetas: (ConversationMeta & { cliSessionId?: string })[] = []
+    for (const file of files) {
+      try {
+        const conv: Conversation = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf-8'))
+        localMetas.push({
+          id: conv.id,
+          title: conv.title,
+          updatedAt: conv.updatedAt,
+          model: conv.model,
+          source: 'local',
+          cliSessionId: conv.cliSessionId,
+        })
+      } catch { /* ignora file corrotti */ }
+    }
+
+    const importedSessionIds = new Set(
+      localMetas.map(m => m.cliSessionId).filter(Boolean) as string[]
+    )
+
+    const vscodeSessions = listClaudeCodeSessions()
+    const vscodeNotImported: ConversationMeta[] = vscodeSessions
+      .filter(s => !importedSessionIds.has(s.sessionId))
+      .map(s => ({
+        id: `vscode-${s.sessionId}`,
+        title: s.firstMessage.slice(0, 60) || 'Sessione VS Code',
+        updatedAt: s.lastActivity,
+        model: 'claude-sonnet-4-6',
+        source: 'vscode' as const,
+        vscodeSessionId: s.sessionId,
+        projectDir: s.projectDir,
+      }))
+
+    return [...localMetas, ...vscodeNotImported].sort((a, b) => b.updatedAt - a.updatedAt)
   })
 
   ipcMain.handle('conv:load', (_event, id: string): Conversation | null => {
@@ -484,21 +585,22 @@ export function registerIpcHandlers(win: BrowserWindow) {
   // ── Claude send ────────────────────────────────────────────────────────────
 
   ipcMain.handle('claude:send', async (event, payload: {
-    messages: { role: 'user' | 'assistant'; content: string }[]
+    messages: { role: 'user' | 'assistant'; content: string; images?: MessageImage[] }[]
     model: string
     cliSessionId?: string
     mode?: string
     projectDir?: string
   }) => {
     const authMode = getAuthMode()
+    const lastMsg = payload.messages[payload.messages.length - 1]
+    if (!lastMsg) {
+      event.sender.send('stream:error', 'Nessun messaggio da inviare')
+      return
+    }
 
-    if (authMode === 'cli') {
-      const lastMsg = payload.messages[payload.messages.length - 1]
-      if (!lastMsg) {
-        event.sender.send('stream:error', 'Nessun messaggio da inviare')
-        return
-      }
-      const result = await sendViaCLI(
+    if (authMode === 'cli' && !lastMsg.images?.length) {
+      // Testo puro: usa il processo CLI
+      return sendViaCLI(
         event,
         {
           lastMessage: lastMsg.content,
@@ -509,42 +611,29 @@ export function registerIpcHandlers(win: BrowserWindow) {
         },
         win
       )
-      return result
     }
 
-    // ── Modalità API key ──────────────────────────────────────────────────────
-    const apiKey = getStoredApiKey()
-    if (!apiKey) {
-      event.sender.send('stream:error', 'API key non configurata')
-      return
+    // Con immagini in CLI mode: usa token OAuth della CLI con l'SDK
+    // In API key mode: usa la chiave API memorizzata
+    let client: Anthropic
+    if (authMode === 'cli') {
+      const oauthToken = getCliOAuthToken()
+      if (!oauthToken) {
+        event.sender.send('stream:error', 'Token OAuth non trovato. Effettua il login con "claude" per usare le immagini.')
+        return
+      }
+      client = new Anthropic({ authToken: oauthToken })
+    } else {
+      const apiKey = getStoredApiKey()
+      if (!apiKey) {
+        event.sender.send('stream:error', 'API key non configurata')
+        return
+      }
+      client = new Anthropic({ apiKey })
     }
 
-    const client = new Anthropic({ apiKey })
     abortController = new AbortController()
-
-    try {
-      const stream = await client.messages.stream({
-        model: payload.model || 'claude-sonnet-4-6',
-        max_tokens: 8096,
-        messages: payload.messages,
-      })
-
-      for await (const chunk of stream) {
-        if (abortController.signal.aborted) break
-        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-          event.sender.send('stream:chunk', chunk.delta.text)
-        }
-      }
-
-      if (!abortController.signal.aborted) {
-        event.sender.send('stream:end')
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (!msg.includes('aborted')) event.sender.send('stream:error', msg)
-    } finally {
-      abortController = null
-    }
+    await sendViaAPI(event, client, payload)
   })
 
   // ── Import sessioni Claude Code (VS Code) ─────────────────────────────────
@@ -555,6 +644,21 @@ export function registerIpcHandlers(win: BrowserWindow) {
       title: 'Seleziona cartella di progetto',
     })
     return result.canceled ? null : result.filePaths[0]
+  })
+
+  ipcMain.handle('dialog:pickImages', async (): Promise<MessageImage[] | null> => {
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'] }],
+      title: 'Seleziona immagini',
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths.map(p => {
+      const data = fs.readFileSync(p).toString('base64')
+      const ext = path.extname(p).toLowerCase().slice(1)
+      const mediaType = (ext === 'jpg' ? 'image/jpeg' : `image/${ext}`) as MessageImage['mediaType']
+      return { data, mediaType }
+    })
   })
 
   ipcMain.handle('vscode:listSessions', () => listClaudeCodeSessions())

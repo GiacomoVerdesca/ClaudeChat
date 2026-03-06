@@ -122,7 +122,6 @@
   border-top: 1px solid var(--border);
 }
 
-.vscode-btn,
 .settings-btn {
   display: flex;
   align-items: center;
@@ -134,10 +133,28 @@
   color: var(--text-muted);
   transition: background 0.1s, color 0.1s;
 }
-.vscode-btn:hover,
 .settings-btn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+/* Badge per sessioni VS Code nella lista */
+.conv-item.vscode-session .conv-title {
+  color: var(--text-muted);
+}
+.conv-item.vscode-session.active .conv-title {
+  color: var(--text-primary);
+}
+.vscode-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(0, 122, 204, 0.2);
+  color: #4a9eff;
+  letter-spacing: 0.3px;
+  margin-left: 4px;
 }
 
 /* ── Account info footer ───────────────────────── */
