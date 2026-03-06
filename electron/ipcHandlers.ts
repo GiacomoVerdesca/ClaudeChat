@@ -390,6 +390,26 @@ export function registerIpcHandlers(win: BrowserWindow) {
     return !!findClaudeCLI()
   })
 
+  ipcMain.handle('auth:installCLI', () => {
+    return new Promise<{ success: boolean; error?: string }>((resolve) => {
+      // Installa Claude Code globalmente via npm
+      const proc = spawn('npm', ['install', '-g', '@anthropic-ai/claude-code'], {
+        shell: true,
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+      let errText = ''
+      proc.stderr.on('data', (d: Buffer) => { errText += d.toString() })
+      proc.on('close', (code) => {
+        if (code === 0) resolve({ success: true })
+        else resolve({ success: false, error: errText.slice(0, 500) || `Exit code ${code}` })
+      })
+      proc.on('error', (err) => {
+        resolve({ success: false, error: `npm non trovato: ${err.message}` })
+      })
+    })
+  })
+
   ipcMain.handle('auth:getKey', () => getStoredApiKey())
 
   ipcMain.handle('auth:saveKey', (_event, key: string) => {

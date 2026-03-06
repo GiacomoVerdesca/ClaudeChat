@@ -191,6 +191,26 @@
   transition: background 0.15s;
 }
 .setup-link-btn:hover { background: var(--accent-hover); text-decoration: none; }
+.setup-link-btn.secondary {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.setup-link-btn.secondary:hover { color: var(--text-primary); background: var(--bg-active); }
+
+/* ── Spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
 
 .setup-tab-switch {
   font-size: 13px;

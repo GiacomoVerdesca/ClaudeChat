@@ -14,6 +14,8 @@ export function Setup({ onReady }: Props) {
   const [show, setShow] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [installing, setInstalling] = useState(false)
+  const [installError, setInstallError] = useState('')
 
   useEffect(() => {
     window.claudeAPI.checkCLI().then(ok => {
@@ -28,6 +30,21 @@ export function Setup({ onReady }: Props) {
     await window.claudeAPI.setAuthMode('cli')
     setLoading(false)
     onReady()
+  }
+
+  const handleInstallCLI = async () => {
+    setInstalling(true)
+    setInstallError('')
+    const result = await window.claudeAPI.installCLI()
+    if (result.success) {
+      // Ri-controlla se è ora disponibile
+      const ok = await window.claudeAPI.checkCLI()
+      setCLIAvailable(ok)
+      if (!ok) setInstallError('Installazione completata ma Claude Code non trovato nel PATH. Riavvia l\'app.')
+    } else {
+      setInstallError(result.error ?? 'Installazione fallita')
+    }
+    setInstalling(false)
   }
 
   const handleApiKeySubmit = async (e: React.FormEvent) => {
@@ -113,15 +130,27 @@ export function Setup({ onReady }: Props) {
                   Claude Code non trovato
                 </div>
                 <p className="setup-desc">
-                  Per usare l'account Anthropic installa Claude Code (lo stesso usato
-                  per l'estensione VS Code), poi riavvia questa app.
+                  Claude Code non è installato. Puoi installarlo automaticamente
+                  (richiede Node.js / npm) oppure scaricarlo manualmente.
                 </p>
+                {installError && <div className="setup-error">{installError}</div>}
+                <button
+                  className="setup-submit"
+                  onClick={handleInstallCLI}
+                  disabled={installing}
+                >
+                  {installing ? (
+                    <>
+                      <span className="spinner" /> Installazione in corso…
+                    </>
+                  ) : 'Installa Claude Code automaticamente'}
+                </button>
                 <a
                   href="#"
-                  className="setup-link-btn"
+                  className="setup-link-btn secondary"
                   onClick={e => { e.preventDefault(); window.open('https://claude.ai/download') }}
                 >
-                  Scarica Claude Code
+                  Scarica manualmente
                 </a>
                 <button
                   className="setup-tab-switch"

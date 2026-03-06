@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('claudeAPI', {
   getAuthMode: () => ipcRenderer.invoke('auth:getMode'),
   setAuthMode: (mode: string) => ipcRenderer.invoke('auth:setMode', mode),
   checkCLI: () => ipcRenderer.invoke('auth:checkCLI'),
+  installCLI: () => ipcRenderer.invoke('auth:installCLI'),
   getApiKey: () => ipcRenderer.invoke('auth:getKey'),
   saveApiKey: (key: string) => ipcRenderer.invoke('auth:saveKey', key),
   clearApiKey: () => ipcRenderer.invoke('auth:clearKey'),

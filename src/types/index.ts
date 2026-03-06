@@ -63,6 +63,7 @@ export interface ClaudeAPI {
   getAuthMode: () => Promise<AuthMode>
   setAuthMode: (mode: AuthMode) => Promise<boolean>
   checkCLI: () => Promise<boolean>
+  installCLI: () => Promise<{ success: boolean; error?: string }>
   getApiKey: () => Promise<string | null>
   saveApiKey: (key: string) => Promise<boolean>
   clearApiKey: () => Promise<boolean>
