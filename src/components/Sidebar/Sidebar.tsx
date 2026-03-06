@@ -22,7 +22,22 @@ export function Sidebar({ metas, activeId, onSelect, onNew, onDelete, onRename, 
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null)
 
   useEffect(() => {
-    window.claudeAPI.getAccountInfo().then(setAccountInfo).catch(() => {})
+    let attempts = 0
+    const tryLoad = () => {
+      window.claudeAPI.getAccountInfo()
+        .then(setAccountInfo)
+        .catch(() => {
+          if (attempts++ < 3) {
+            setTimeout(tryLoad, 800)
+          } else {
+            // Fallback: mostra almeno la modalità auth
+            window.claudeAPI.getAuthMode()
+              .then(mode => setAccountInfo({ mode, username: 'Utente', subscriptionType: null, apiKeyMasked: null }))
+              .catch(() => {})
+          }
+        })
+    }
+    tryLoad()
   }, [])
 
   const startRename = (meta: ConversationMeta, e: React.MouseEvent) => {
