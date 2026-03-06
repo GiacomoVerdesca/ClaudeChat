@@ -1,0 +1,201 @@
+.setup-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.setup-card {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 400px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.setup-logo { margin-bottom: 4px; }
+
+.setup-card h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.setup-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.setup-card form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setup-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.setup-input-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.setup-input-wrap:focus-within { border-color: var(--accent); }
+
+.setup-input-wrap input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--mono);
+}
+.setup-input-wrap input::placeholder { color: var(--text-muted); font-family: var(--font); }
+
+.toggle-show {
+  padding: 8px 10px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: color 0.1s;
+}
+.toggle-show:hover { color: var(--text-primary); }
+
+.setup-error {
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.setup-submit {
+  width: 100%;
+  padding: 11px;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.15s, opacity 0.15s;
+  margin-top: 4px;
+}
+.setup-submit:hover:not(:disabled) { background: var(--accent-hover); }
+.setup-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.setup-help {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+}
+.setup-help a { color: var(--accent); }
+
+/* ── Tabs ── */
+.setup-tabs {
+  display: flex;
+  width: 100%;
+  background: var(--bg-input);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.setup-tab {
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.setup-tab.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+.setup-tab:not(.active):hover { color: var(--text-primary); }
+
+/* ── Panel ── */
+.setup-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.setup-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.setup-checking {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* ── CLI status ── */
+.cli-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.cli-status.ok {
+  background: rgba(16, 163, 127, 0.12);
+  border: 1px solid rgba(16, 163, 127, 0.3);
+  color: #10a37f;
+}
+.cli-status.error {
+  background: rgba(229, 83, 83, 0.1);
+  border: 1px solid rgba(229, 83, 83, 0.25);
+  color: var(--danger);
+}
+
+.setup-link-btn {
+  display: block;
+  text-align: center;
+  padding: 10px;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.setup-link-btn:hover { background: var(--accent-hover); text-decoration: none; }
+
+.setup-tab-switch {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  transition: color 0.1s;
+}
+.setup-tab-switch:hover { color: var(--text-primary); }

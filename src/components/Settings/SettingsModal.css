@@ -1,0 +1,107 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+
+.modal-card {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 460px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-header h2 { font-size: 16px; font-weight: 600; }
+.modal-close {
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.1s, color 0.1s;
+}
+.modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 24px; }
+
+.settings-section { display: flex; flex-direction: column; gap: 10px; }
+.settings-section h3 { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.settings-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+.settings-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.settings-input-row .setup-input-wrap { flex: 1; }
+.settings-input-row .setup-input-wrap input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--mono);
+  width: 100%;
+}
+
+.save-key-btn {
+  padding: 8px 14px;
+  background: var(--accent);
+  color: white;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.save-key-btn:hover:not(:disabled) { background: var(--accent-hover); }
+.save-key-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.save-key-btn.saved { background: #2d7a5a; }
+
+.auth-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.auth-mode-badge.cli {
+  background: rgba(16, 163, 127, 0.12);
+  border: 1px solid rgba(16, 163, 127, 0.25);
+  color: #10a37f;
+}
+.auth-mode-badge.apikey {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.danger-section { border-top: 1px solid var(--border); padding-top: 20px; }
+
+.logout-btn {
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.logout-btn:hover { background: rgba(229, 83, 83, 0.1); }
